@@ -266,6 +266,18 @@ function parseTextSongs(text) {
 }
 
 // ====== Fetch from NetEase API ======
+// CORS 代理（用于绕过网易云跨域限制）
+async function corsFetch(url, opts = {}) {
+  // 先尝试直连
+  try {
+    const resp = await fetch(url, opts);
+    if (resp.ok) return resp;
+  } catch(e) {}
+  // 走 CORS 代理
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  return fetch(proxy, opts);
+}
+
 async function fetchNeteasePlaylist(url) {
   // 支持163cn.tv短链接：跟随重定向获取真实URL
   if (url.includes('163cn.tv')) {
@@ -279,7 +291,7 @@ async function fetchNeteasePlaylist(url) {
   const playlistId = match[1];
 
   // Step 1: get trackIds via v6 API
-  const v6Resp = await fetch(`https://music.163.com/api/v6/playlist/detail?id=${playlistId}&n=2000`, {
+  const v6Resp = await corsFetch(`https://music.163.com/api/v6/playlist/detail?id=${playlistId}&n=2000`, {
     headers: { 'Referer': 'https://music.163.com/' }
   });
   const v6Data = await v6Resp.json();
@@ -288,7 +300,7 @@ async function fetchNeteasePlaylist(url) {
 
   // Step 2: get song details for first 50
   const sampleIds = trackIds.slice(0, 50).map(t => t.id).join(',');
-  const detailResp = await fetch(`https://music.163.com/api/song/detail?ids=%5B${sampleIds}%5D`, {
+  const detailResp = await corsFetch(`https://music.163.com/api/song/detail?ids=%5B${sampleIds}%5D`, {
     headers: { 'Referer': 'https://music.163.com/' }
   });
   const detailData = await detailResp.json();
