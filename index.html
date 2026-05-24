@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>音乐人格测试</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+.container { max-width: 400px; width: 100%; padding-top: 40px; }
+.hero { text-align: center; margin-bottom: 30px; }
+.hero h1 {
+  font-size: 28px; font-weight: 800;
+  background: linear-gradient(135deg, #f5af19, #f12711);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.hero p { color: rgba(255,255,255,0.6); font-size: 14px; }
+.input-section {
+  background: rgba(255,255,255,0.08); border-radius: 16px; padding: 24px; margin-bottom: 16px;
+}
+.input-section label { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: block; margin-bottom: 12px; }
+.input-section input, .input-section textarea {
+  width: 100%; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; background: rgba(255,255,255,0.06); color: #fff;
+  font-size: 15px; outline: none; transition: border-color 0.3s; font-family: inherit;
+}
+.input-section textarea { min-height: 120px; resize: vertical; }
+.input-section input:focus, .input-section textarea:focus { border-color: #f5af19; }
+.input-section input::placeholder, .input-section textarea::placeholder { color: rgba(255,255,255,0.3); }
+.btn {
+  width: 100%; padding: 16px; border: none; border-radius: 14px;
+  font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.3s;
+  background: linear-gradient(135deg, #f5af19, #f12711); color: #fff; margin-bottom: 12px;
+}
+.btn:active { transform: scale(0.98); opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+  background: transparent; color: rgba(255,255,255,0.5); font-size: 13px; text-align: center; cursor: pointer;
+  transition: all 0.3s;
+}
+.tab.active { background: rgba(255,255,255,0.1); color: #fff; border-color: #f5af19; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.how-to { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; line-height: 1.8; }
+.loading { display: none; text-align: center; padding: 60px 20px; }
+.loading.active { display: block; }
+.spinner {
+  width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: #f5af19; border-radius: 50%; animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: rgba(255,255,255,0.5); font-size: 14px; }
+.error-msg {
+  display: none; background: rgba(255,71,87,0.15); color: #ff4757;
+  padding: 14px; border-radius: 12px; font-size: 14px; text-align: center; margin-bottom: 16px;
+}
+.error-msg.active { display: block; }
+
+/* Results */
+.result-card { display: none; animation: fadeIn 0.5s ease; }
+.result-card.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.result-emoji { font-size: 72px; text-align: center; margin-bottom: 8px; }
+.result-code {
+  font-size: 42px; font-weight: 900; letter-spacing: 4px; text-align: center;
+  background: linear-gradient(135deg, #f5af19, #f12711);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 4px; font-family: monospace;
+}
+.result-name-inline { font-size: 24px; font-weight: 700; -webkit-text-fill-color: #fff; font-family: -apple-system, sans-serif; }
+.result-mbti { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; margin-bottom: 20px; }
+.result-analysis {
+  font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.8);
+  margin-bottom: 24px; background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px;
+}
+.dna-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.dna-item { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; }
+.dna-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+.dna-value { font-size: 15px; font-weight: 600; }
+.top3 { margin-bottom: 24px; }
+.top3-title { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+.top3-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.top3-rank { font-size: 20px; font-weight: 800; color: #f5af19; min-width: 28px; }
+.top3-info { flex: 1; }
+.top3-song { font-size: 14px; font-weight: 600; }
+.top3-artist { font-size: 12px; color: rgba(255,255,255,0.4); }
+.soulmate {
+  background: rgba(255,255,255,0.06); border-radius: 12px; padding: 14px;
+  text-align: center; margin-bottom: 20px; font-size: 14px;
+}
+.soulmate em { font-style: normal; color: #f5af19; font-weight: 600; }
+.fun-fact { font-size: 12px; color: rgba(255,255,255,0.4); text-align: center; margin-bottom: 16px; }
+.sbti-note {
+  background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px;
+  text-align: center; font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.8; margin-bottom: 20px;
+}
+.share-btn { background: linear-gradient(135deg, #00b894, #00cec9); margin-bottom: 8px; }
+.retry-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5); font-size: 13px; padding: 12px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <h1>🎵 音乐人格测试</h1>
+    <p>把你的歌单丢进来，看看你的耳朵此刻是什么形状</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('link')">🔗 粘贴链接</div>
+    <div class="tab" onclick="switchTab('text')">📋 粘贴歌名</div>
+  </div>
+
+  <div class="tab-content active" id="tab-link">
+    <div class="input-section">
+      <input type="text" id="urlInput" placeholder="网易云歌单分享链接（或直接粘贴分享的文字）">
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-text">
+    <div class="input-section">
+      <textarea id="textInput" placeholder="直接粘贴歌单里的歌曲名&#10;每行一首，格式：歌名 — 歌手&#10;&#10;例如：&#10;Melody — 陶喆&#10;找自己 — 陶喆&#10;爱很简单 — 陶喆"></textarea>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+  <button class="btn" id="analyzeBtn" onclick="analyze()">🔮 分析我的音乐人格</button>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p class="loading-text">正在分析你的音乐DNA...</p>
+  </div>
+
+  <div class="result-card" id="resultCard"></div>
+
+  <div class="how-to">
+    <p>如何获取歌单链接？</p>
+    <p>网易云App → 歌单 → 右上角分享 → 复制链接</p>
+    <p>或直接复制歌单里的歌曲名，粘贴到「粘贴歌名」</p>
+  </div>
+</div>
+
+<script>
+// ====== 16 Personality Types ======
+const PERSONALITY_TYPES = [
+  {"id":"emo","name":"网抑云居民","emoji":"🌙","code":"EMO","vibe":"你的网易云年度报告显示，你的听歌高峰在凌晨两点到五点之间。这不是巧合，这是你的生物钟。评论区是你真正的朋友圈——你在每首歌下面写小作文，比你在微信上说的话加起来还多。","share_text":"我的耳朵被诊断为「网抑云居民」EMO 🌙\n凌晨三点网易云，年度报告说我听歌时间打败了99%的人——但不是白天。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"solo","name":"耳机独狼","emoji":"🎧","code":"SOLO","vibe":"你的耳机是赛博义肢，取下来会死。收藏夹里全是live版但从来不去音乐节。在KTV只点不唱，除非全场只有你一个人。有人问你在听什么，你说没什么。","share_text":"我的耳朵被诊断为「耳机独狼」SOLO 🎧\n收藏夹全是live版但从不去现场。耳机是本体。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"wave","name":"氛围组","emoji":"🌊","code":"WAVE","vibe":"你的歌单打开不是为了听，是怕房间太安静。听完一整轮记不住任何歌词，但能精准描述每首歌的感觉——就是那种，很空旷的，像在海边但是是阴天的那种。","share_text":"我的耳朵被诊断为「氛围组」WAVE 🌊\n歌单放完一轮你没注意到任何一句歌词。不是听不懂，是根本不想懂。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"bass","name":"颅内DJ","emoji":"🔊","code":"BASS","vibe":"你在洗澡的时候召开世界巡演，出了浴室蓝牙都不敢外放。歌单里128BPM以上的占80%，但微信步数日均2000。你的DJ歌单分类了15个文件夹。","share_text":"我的耳朵被诊断为「颅内DJ」BASS 🔊\n洗澡的时候在格莱美领奖，出了浴室连蓝牙都不敢外放。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"vibe","name":"格调人","emoji":"🍂","code":"VIBE","vibe":"你喝的是速溶咖啡，但你的歌单要求手冲。天气必须是阴天，灯光必须是暖黄，窗外最好在下雨——但实际上你在出租屋里对着电脑改PPT。你的歌单封面都是黑白的。","share_text":"我的耳朵被诊断为「格调人」VIBE 🍂\n喝速溶咖啡但歌单要求手冲。窗外最好在下雨。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"cybr","name":"赛博耳","emoji":"🚀","code":"CYBR","vibe":"你听的东西你爸妈听了会说放的什么玩意儿。走路要有合成器，坐地铁要加鼓点。你的歌单里有很多念不出名字的国外制作人。你给每种电子风格都建了歌单。","share_text":"我的耳朵被诊断为「赛博耳」CYBR 🚀\n你听的东西你爸妈听了会说放得什么玩意儿。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"acgn","name":"二刺猿","emoji":"🌸","code":"ACGN","vibe":"你的日语词汇量全部来自歌词。你以为自己听得懂，直到看了翻译才发现一直理解错了。片尾曲响起的时候你觉得自己是主角。动漫OST分类了17个文件夹，但没跟任何人聊过。","share_text":"我的耳朵被诊断为「二刺猿」ACGN 🌸\n日语词汇量全部来自歌词。以为自己听得懂，直到看了翻译。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"vint","name":"模拟味","emoji":"📻","code":"VINT","vibe":"你的音乐审美停留在你出生前二十年。觉得现在的歌太吵了，然后打开第473遍《月半小夜曲》。同学聚会你的歌是全场唯一没人会唱的。你知道黑胶crackle和数字噪音的区别。","share_text":"我的耳朵被诊断为「模拟味」VINT 📻\n觉得现在的歌太吵了，然后打开了第473遍《月半小夜曲》。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"bpm","name":"节拍战士","emoji":"🔥","code":"BPM+","vibe":"BPM低于120的歌统称为无效音乐。前奏超过15秒直接跳过。你的播放列表从第一首到最后一首无缝衔接，像一场永不结束的HIIT课。健身房教练看到你戴耳机就知道不用管你了。","share_text":"我的耳朵被诊断为「节拍战士」BPM+ 🔥\nBPM低于120都是无效音乐。前奏超过15秒直接跳过。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"opus","name":"五线谱人","emoji":"🎻","code":"OPUS","vibe":"你听的歌需要先查一下谱子才能聊。朋友坐车听到交响乐说能不能换，你说等一下这乐章快完了——然后尾声拖了三分钟。你不是装，你真的花了一下午比较卡拉扬和伯恩斯坦的贝五。","share_text":"我的耳朵被诊断为「五线谱人」OPUS 🎻\n不是装，是真的花了一个下午比较卡拉扬和伯恩斯坦的贝五。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"sugar","name":"糖分超标","emoji":"🌈","code":"SUGR","vibe":"你的歌单就是一部MV脚本，每首歌都自动配上了恋爱画面。走在街上觉得自己是主角，然后看了一眼手机发现根本没有新消息。失恋时歌单180度大转弯，三个月后循环。","share_text":"我的耳朵被诊断为「糖分超标」SUGR 🌈\n每首歌都自动配上了想象中的恋爱画面。走在街上觉得自己是主角。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"zen","name":"耳禅","emoji":"🧘","code":"ZEN","vibe":"歌单打开不是为了听，是为了不听。需要白噪音来抵消室友的噪音、窗外的噪音、脑子的噪音。你知道雨声有12种流派。冥想APP续费三年了，但一次都没真的冥想过。","share_text":"我的耳朵被诊断为「耳禅」ZEN 🧘\n歌单打开不是为了听，是为了不听。雨声有12种流派你知道吗。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"oaae","name":"扁陶体","emoji":"🎤","code":"OAAE","vibe":"R&B是信仰，转音是呼吸。随便一首歌都能跟着跑几个弯。你觉得华语R&B的黄金年代没有过去——它活在你的歌单里。唱歌必须闭眼，情到深处必须皱眉。哦啊啊哎哎，懂的都懂。","share_text":"我的耳朵被诊断为「扁陶体」OAAE 🎤\nR&B是信仰，转音是呼吸。哦啊啊哎哎，懂的都懂。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"wdst","name":"木头人","emoji":"🪵","code":"WDST","vibe":"只有木吉他的歌才是真的音乐。电音太吵、编曲太满、你只需要三和弦和一段诚恳的嗓子。Woodstock你没去过，但你的歌单去过。一首歌加Auto-Tune直接扣50分。","share_text":"我的耳朵被诊断为「木头人」WDST 🪵\n电音太吵、编曲太满、你只需要三和弦和一段诚恳的嗓子。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"chug","name":"甩头人","emoji":"🤘","code":"CHUG","vibe":"重型是信仰，双踩是心跳。邻居以为你在装修，其实你在跟着breakdown甩头。耳机里在Wacken，现实中在地铁上安静得像只猫。你的颈椎比你更清楚Metallica和Slipknot的区别。","share_text":"我的耳朵被诊断为「甩头人」CHUG 🤘\n邻居以为你在装修，其实你在甩头。耳机里在Wacken，现实中安静得像只猫。\n你的歌单是毛坯还是精装？来测测？"},
+  {"id":"digr","name":"挖歌人","emoji":"⛏️","code":"DIGR","vibe":"算法没有你懂自己。歌单是一座声音博物馆——非洲部落鼓、日本city pop、冰岛后摇、巴西bossa nova。别人问你喜欢什么音乐，你说这很难解释。不是装——是真的涉及了八个语种十二种风格。","share_text":"我的耳朵被诊断为「挖歌人」DIGR ⛏️\n别人问你喜欢什么音乐，你说这很难解释。不是装，是真的很难解释。\n你的歌单是毛坯还是精装？来测测？"}
+];
+
+// ====== Analysis Engine ======
+function analyzeSongs(songs) {
+  const genres = {pop:0,rock:0,electronic:0,ballad:0,hiphop:0,folk:0,classical:0,jazz:0,rnb:0,indie:0,anime:0,kpop:0,metal:0,lofi:0,ambient:0};
+  const langs = {zh:0,en:0,ja:0,ko:0,other:0};
+
+  for (const s of songs) {
+    const t = `${s.name} ${s.artist}`.toLowerCase();
+    if (/(rock|摇滚|guitar|吉他|metal|金属|重型|嘶吼)/.test(t)) genres.rock++;
+    else if (/(electronic|电子|edm|dj|remix|synth|合成器)/.test(t)) genres.electronic++;
+    else if (/(hip|rap|说唱|trap)/.test(t)) genres.hiphop++;
+    else if (/(folk|民谣|吉他弹唱|不插电|acoustic)/.test(t)) genres.folk++;
+    else if (/(classical|古典|交响|piano|钢琴|orchestra|管弦)/.test(t)) genres.classical++;
+    else if (/(jazz|爵士|bossa|swing)/.test(t)) genres.jazz++;
+    else if (/(rnb|r&b|soul)/.test(t)) genres.rnb++;
+    else if (/(anime|动漫|vocaloid|初音|二次元|ost|acg)/.test(t)) genres.anime++;
+    else if (/(kpop|k-pop|韩)/.test(t)) genres.kpop++;
+    else if (/(indie|独立|underground|地下|alternative)/.test(t)) genres.indie++;
+    else if (/(metal|金属|heavy|thrash|death|black|core|breakdown)/.test(t)) genres.metal++;
+    else if (/(lofi|lo-fi|chill|ambient|氛围|白噪音|自然|雨声|冥想)/.test(t)) genres.ambient++;
+    else if (/(抒情|慢歌|情歌|ballad|伤感|emo)/.test(t)) genres.ballad++;
+    else genres.pop++;
+
+    if (/[一-鿿]/.test(s.name)) langs.zh++;
+    else if (/[぀-ヿ]/.test(s.name + s.artist)) langs.ja++;
+    else if (/[가-힯]/.test(s.name + s.artist)) langs.ko++;
+    else if (/[a-zA-Z]/.test(s.name)) langs.en++;
+    else langs.other++;
+  }
+
+  const topGenre = Object.entries(genres).sort((a,b) => b[1]-a[1])[0][0];
+  const topLang = Object.entries(langs).sort((a,b) => b[1]-a[1])[0][0];
+  const total = songs.length;
+
+  const mapping = {
+    folk: 'wdst', pop: 'sugar', rock: 'chug', electronic: 'cybr',
+    ballad: 'emo', hiphop: 'bpm', classical: 'opus', jazz: 'vibe',
+    indie: 'digr', anime: 'acgn', kpop: 'sugar', rnb: 'oaae',
+    metal: 'chug', ambient: 'wave', lofi: 'zen'
+  };
+
+  const pid = mapping[topGenre] || 'wave';
+  const ptype = PERSONALITY_TYPES.find(t => t.id === pid) || PERSONALITY_TYPES[0];
+  const soulmates = PERSONALITY_TYPES.filter(t => t.id !== pid);
+  const soulmate = soulmates[Math.floor(Math.random() * soulmates.length)];
+
+  const langNames = {zh:'中文',en:'英文',ja:'日语',ko:'韩语',other:'多元'};
+  const langPct = Math.round(langs[topLang] / total * 100);
+
+  return {
+    personality_id: pid,
+    personality_name: ptype.name,
+    personality_emoji: ptype.emoji,
+    personality_code: ptype.code,
+    music_dna: {
+      main_genre: topGenre.charAt(0).toUpperCase() + topGenre.slice(1),
+      era: '2020s 为主',
+      language: langNames[topLang] || '多元',
+      energy: (['rock','hiphop','electronic','metal'].includes(topGenre) ? '高' : ['ballad','ambient','lofi'].includes(topGenre) ? '低' : '中'),
+      emotion: topGenre === 'ballad' ? '忧郁' : topGenre === 'rock' ? '热烈' : topGenre === 'electronic' ? '迷幻' : topGenre === 'pop' ? '甜蜜' : topGenre === 'classical' ? '冷静' : '多元'
+    },
+    analysis: ptype.vibe,
+    top3_songs: songs.slice(0, 3).map(s => ({name:s.name, artist:s.artist, why:'这首最能代表你此刻的耳朵'})),
+    soulmate_type: soulmate.name,
+    soulmate_code: soulmate.code,
+    share_text: ptype.share_text,
+    fun_fact: `${langNames[topLang]}歌占了${langPct > 50 ? '七成以上' : '大多数'}，${topGenre.charAt(0).toUpperCase()+topGenre.slice(1)}是你的音乐母语`,
+    song_count: songs.length
+  };
+}
+
+// ====== Parse input text to songs ======
+function parseTextSongs(text) {
+  const songs = [];
+  for (let line of text.trim().split('\n')) {
+    line = line.trim().replace(/^\d+[\.\)、\s]+/, '');
+    if (!line || line.length < 2) continue;
+    const parts = line.split(/[—\-–·•]+/);
+    if (parts.length >= 2) {
+      songs.push({name: parts[0].trim(), artist: parts[1].trim(), album: ''});
+    } else {
+      songs.push({name: line, artist: '', album: ''});
+    }
+  }
+  return songs;
+}
+
+// ====== Fetch from NetEase API ======
+async function fetchNeteasePlaylist(url) {
+  // 支持163cn.tv短链接：跟随重定向获取真实URL
+  if (url.includes('163cn.tv')) {
+    try {
+      const r = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+      url = r.url;
+    } catch(e) {}
+  }
+  const match = url.match(/(?:id=|playlist\/)(\d+)/);
+  if (!match) throw new Error('无法识别网易云歌单链接');
+  const playlistId = match[1];
+
+  // Step 1: get trackIds via v6 API
+  const v6Resp = await fetch(`https://music.163.com/api/v6/playlist/detail?id=${playlistId}&n=2000`, {
+    headers: { 'Referer': 'https://music.163.com/' }
+  });
+  const v6Data = await v6Resp.json();
+  const trackIds = v6Data?.playlist?.trackIds;
+  if (!trackIds || trackIds.length === 0) throw new Error('歌单为空或无法访问');
+
+  // Step 2: get song details for first 50
+  const sampleIds = trackIds.slice(0, 50).map(t => t.id).join(',');
+  const detailResp = await fetch(`https://music.163.com/api/song/detail?ids=%5B${sampleIds}%5D`, {
+    headers: { 'Referer': 'https://music.163.com/' }
+  });
+  const detailData = await detailResp.json();
+  const songs = (detailData.songs || []).map(s => ({
+    name: s.name || '',
+    artist: (s.ar || []).map(a => a.name).join(', '),
+    album: s.al?.name || ''
+  }));
+
+  if (songs.length === 0) throw new Error('无法获取歌曲详情，请尝试粘贴歌名');
+  return songs;
+}
+
+// ====== Main ======
+async function analyze() {
+  const isLinkTab = document.getElementById('tab-link').classList.contains('active');
+  let input = isLinkTab ? document.getElementById('urlInput').value.trim() : document.getElementById('textInput').value.trim();
+  if (!input) { showError('请先粘贴歌单链接或歌单文字'); return; }
+
+  // Extract URL from share text
+  const urlMatch = input.match(/(https?:\/\/[^\s]+(?:music\.163\.com|y\.qq\.com)[^\s]*)/i);
+  const isUrl = urlMatch || /music\.163\.com|y\.qq\.com/.test(input);
+  if (urlMatch) input = urlMatch[1];
+
+  document.getElementById('resultCard').classList.remove('active');
+  document.getElementById('errorMsg').classList.remove('active');
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('analyzeBtn').disabled = true;
+
+  try {
+    let songs;
+
+    if (isUrl && isLinkTab) {
+      // Try NetEase API
+      try {
+        songs = await fetchNeteasePlaylist(input);
+      } catch(e) {
+        // Fallback: suggest text paste
+        showError('链接抓取失败（可能需要从中国境内访问）。请切换到「粘贴歌名」，直接复制歌单里的歌曲名进来。');
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('analyzeBtn').disabled = false;
+        return;
+      }
+    } else {
+      songs = parseTextSongs(input);
+    }
+
+    if (!songs || songs.length < 3) {
+      showError('至少需要 3 首歌才能分析，请粘贴更多歌曲');
+      document.getElementById('loading').classList.remove('active');
+      document.getElementById('analyzeBtn').disabled = false;
+      return;
+    }
+
+    const result = analyzeSongs(songs.slice(0, 50));
+    renderResult(result);
+  } catch(e) {
+    showError('分析失败：' + e.message + '。请尝试粘贴歌名。');
+  } finally {
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+}
+
+function renderResult(data) {
+  const card = document.getElementById('resultCard');
+  card.innerHTML = `
+    <div class="result-emoji">${data.personality_emoji}</div>
+    <div class="result-code">${data.personality_code} <span class="result-name-inline">${data.personality_name}</span></div>
+    <div class="result-mbti">🎭 推测 MBTI：${data.music_dna?.emotion === '忧郁' ? 'INFP' : data.music_dna?.emotion === '热烈' ? 'ESTP' : data.music_dna?.emotion === '甜蜜' ? 'ESFJ' : 'INTJ'}</div>
+    <div class="result-analysis">${data.analysis}</div>
+    <div class="dna-grid">
+      <div class="dna-item"><div class="dna-label">主要流派</div><div class="dna-value">${data.music_dna.main_genre}</div></div>
+      <div class="dna-item"><div class="dna-label">语言</div><div class="dna-value">${data.music_dna.language}</div></div>
+      <div class="dna-item"><div class="dna-label">能量水平</div><div class="dna-value">${data.music_dna.energy}</div></div>
+      <div class="dna-item"><div class="dna-label">情绪基调</div><div class="dna-value">${data.music_dna.emotion}</div></div>
+    </div>
+    <div class="soulmate">💫 你的音乐灵魂伴侣：<em>${data.soulmate_code} ${data.soulmate_type}</em></div>
+    <div class="top3"><div class="top3-title">🎶 代表曲目</div>
+      ${data.top3_songs.map((s,i) => `
+        <div class="top3-item">
+          <div class="top3-rank">${i+1}</div>
+          <div class="top3-info">
+            <div class="top3-song">${s.name}</div>
+            <div class="top3-artist">${s.artist || ''}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="fun-fact">💡 ${data.fun_fact}</div>
+    <div class="sbti-note">
+      <p>🎧 从歌单里取了最近添加的 50 首</p>
+      <p>下次加新歌，你可能是另一个自己</p>
+      <p style="font-size:11px;opacity:0.5;">分析在浏览器内完成，不存储你的歌单数据 · 纯属娱乐 · 别太认真</p>
+    </div>
+    <button class="btn share-btn" onclick="share()">📤 分享结果给朋友</button>
+    <button class="btn retry-btn" onclick="reset()">🔄 再测一次</button>
+  `;
+  card.classList.add('active');
+  window._shareText = data.share_text;
+  window.scrollTo({ top: card.offsetTop - 20, behavior: 'smooth' });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function share() {
+  const text = window._shareText || '来测测你的音乐人格！';
+  if (navigator.share) {
+    navigator.share({ title: '你的音乐人格是什么？', text, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(text + '\n' + window.location.href).then(() => alert('已复制，去粘贴给你的朋友吧！'));
+  }
+}
+
+function reset() {
+  document.getElementById('resultCard').classList.remove('active');
+  document.getElementById('errorMsg').classList.remove('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('active');
+}
+
+document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+</script>
+</body>
+</html>
