@@ -266,76 +266,23 @@ function parseTextSongs(text) {
 }
 
 // ====== Fetch from NetEase API ======
-// CORS 代理（多个备用）
-const CORS_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url=',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://proxy.cors.sh/',
-];
-async function corsFetch(url, opts = {}) {
-  // 先直连
-  try {
-    const resp = await fetch(url, opts);
-    if (resp.ok) return resp;
-  } catch(e) {}
-  // 逐个试代理
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const resp = await fetch(proxy + encodeURIComponent(url), { ...opts, signal: AbortSignal.timeout(8000) });
-      if (resp.ok) return resp;
-    } catch(e) {}
-  }
-    // 最后试 Vercel API
-  try {
-    const vercelUrl = 'https://music-deploy-mocha.vercel.app/api/analyze';
-    const resp = await fetch(vercelUrl, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({url}),
-      signal: AbortSignal.timeout(15000)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.songs) return { json: () => Promise.resolve({songs: data.songs}) };
-    }
-  } catch(e) {}
-  throw new Error('所有连接方式均失败——请切换到「粘贴歌名」，直接复制歌单里的歌曲名进来');
-}
-
 async function fetchNeteasePlaylist(url) {
-  // 支持163cn.tv短链接：跟随重定向获取真实URL
+  // 展开 163cn.tv 短链
   if (url.includes('163cn.tv')) {
-    try {
-      const r = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-      url = r.url;
-    } catch(e) {}
+    try { const r = await fetch(url, {method:'HEAD',redirect:'follow'}); url = r.url; } catch(e) {}
   }
-  const match = url.match(/(?:id=|playlist\/)(\d+)/);
-  if (!match) throw new Error('无法识别网易云歌单链接');
-  const playlistId = match[1];
-
-  // Step 1: get trackIds via v6 API
-  const v6Resp = await corsFetch(`https://music.163.com/api/v6/playlist/detail?id=${playlistId}&n=2000`, {
-    headers: { 'Referer': 'https://music.163.com/' }
-  });
-  const v6Data = await v6Resp.json();
-  const trackIds = v6Data?.playlist?.trackIds;
-  if (!trackIds || trackIds.length === 0) throw new Error('歌单为空或无法访问');
-
-  // Step 2: get song details for first 50
-  const sampleIds = trackIds.slice(0, 50).map(t => t.id).join(',');
-  const detailResp = await corsFetch(`https://music.163.com/api/song/detail?ids=%5B${sampleIds}%5D`, {
-    headers: { 'Referer': 'https://music.163.com/' }
-  });
-  const detailData = await detailResp.json();
-  const songs = (detailData.songs || []).map(s => ({
-    name: s.name || '',
-    artist: (s.ar || []).map(a => a.name).join(', '),
-    album: s.al?.name || ''
+  const m = url.match(/(?:id=|playlist\/)(\d+)/);
+  if (!m) throw new Error('无法识别链接');
+  const pid = m[1];
+  // JSONP 获取歌单数据
+  const d1 = await jsonpGet('https://music.163.com/api/v6/playlist/detail?id='+pid+'&n=2000');
+  const ids = (d1.playlist?.trackIds || []).slice(0, 50).map(t => t.id);
+  if (!ids.length) throw new Error('歌单为空');
+  const d2 = await jsonpGet('https://music.163.com/api/song/detail?ids=%5B'+ids.join(',')+'%5D');
+  const songs = (d2.songs || []).map(s => ({
+    name: s.name || '', artist: (s.ar||[]).map(a=>a.name).join(', '), album: (s.al||{}).name||''
   }));
-
-  if (songs.length === 0) throw new Error('无法获取歌曲详情，请尝试粘贴歌名');
+  if (!songs.length) throw new Error('无法获取歌曲');
   return songs;
 }
 
