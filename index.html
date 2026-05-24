@@ -266,16 +266,41 @@ function parseTextSongs(text) {
 }
 
 // ====== Fetch from NetEase API ======
-// CORS 代理（用于绕过网易云跨域限制）
+// CORS 代理（多个备用）
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://proxy.cors.sh/',
+];
 async function corsFetch(url, opts = {}) {
-  // 先尝试直连
+  // 先直连
   try {
     const resp = await fetch(url, opts);
     if (resp.ok) return resp;
   } catch(e) {}
-  // 走 CORS 代理
-  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
-  return fetch(proxy, opts);
+  // 逐个试代理
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const resp = await fetch(proxy + encodeURIComponent(url), { ...opts, signal: AbortSignal.timeout(8000) });
+      if (resp.ok) return resp;
+    } catch(e) {}
+  }
+    // 最后试 Vercel API
+  try {
+    const vercelUrl = 'https://music-deploy-mocha.vercel.app/api/analyze';
+    const resp = await fetch(vercelUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url}),
+      signal: AbortSignal.timeout(15000)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.songs) return { json: () => Promise.resolve({songs: data.songs}) };
+    }
+  } catch(e) {}
+  throw new Error('所有连接方式均失败——请切换到「粘贴歌名」，直接复制歌单里的歌曲名进来');
 }
 
 async function fetchNeteasePlaylist(url) {
